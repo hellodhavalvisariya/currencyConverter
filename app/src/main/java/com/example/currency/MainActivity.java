@@ -2,76 +2,29 @@ package com.example.currency;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.SharedPreferences;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.view.View;
+import android.widget.ProgressBar;
+import android.widget.Toast;
+
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.os.Bundle;
-import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.EditText;
-import android.widget.Spinner;
-import android.widget.TextView;
-import android.widget.Toast;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.URL;
-import java.net.URLConnection;
 
 public class MainActivity extends AppCompatActivity {
-    public JsonObject getApiJson(String urlInput) {
-        // Connect to the URL using java's native library
-        JsonObject jObject = new JsonObject();
-        try {
-            URL url = new URL(urlInput);
-            URLConnection request = url.openConnection();
-            request.connect();
+    public boolean checkInternet() {
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo netInfo = cm.getActiveNetworkInfo();
 
-            // Convert to a JSON object to print data
-            jObject = new Gson().fromJson(new InputStreamReader((InputStream) request.getContent()), JsonObject.class); //Convert the input stream to a json element
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
+        if (!(netInfo != null && netInfo.isConnectedOrConnecting())) {
+            return false;
+        } else {
+            return true;
         }
-        return jObject;
-    }
-
-    public String[] getCurrencies() {
-        JsonObject obj = getApiJson("https://openexchangerates.org/api/currencies.json");
-        JsonArray jsonArray = obj.getAsJsonArray(); // TODO: Fix this bug. (Is not JSON array)
-        int length = jsonArray.size();
-        String[] currencies = new String[length];
-
-        for (int index = 0; index < length; index++) {
-            String key = jsonArray.get(index).getAsString();
-            currencies[index] = key;
-        }
-        return currencies;
-    }
-
-    public float convertCurrency(float value, String from, String to) {
-        // 1000 requests per month
-        String authKey = "28f3a6b2a19646a0a0a737842c3fa0e2";
-
-        JsonObject obj = getApiJson("https://openexchangerates.org/api/convert/" + value + "/" + from + "/" + to + "?app_id=" + authKey);
-        float result = obj.get("response").getAsFloat();
-        return result;
-    }
-
-
-    public void showResult(View view) {
-        EditText inputField = (EditText) findViewById(R.id.amountInput);
-        Spinner fromSpinner = (Spinner) findViewById(R.id.startSpinner);
-        Spinner toSpinner = (Spinner) findViewById(R.id.destinationSpinner);
-        TextView result = (TextView) findViewById(R.id.result);
-
-        // change result Textbox to the converted value
-        result.setText(Float.toString(convertCurrency(Float.valueOf(inputField.getText().toString()), fromSpinner.getSelectedItem().toString(), toSpinner.getSelectedItem().toString())));
-
     }
 
     @Override
@@ -79,45 +32,47 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // check for internet connection
-        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo netInfo = cm.getActiveNetworkInfo();
-        if (!(netInfo != null && netInfo.isConnectedOrConnecting())) {
-            Toast.makeText(this, "No internet connection found!", Toast.LENGTH_LONG).show();
+        // check if it is first time using app
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        if (!prefs.getBoolean("firstTime", false)) {
+            //sync();
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putBoolean("firstTime", true);
+            editor.commit();
+        } else {
+            Toast.makeText(this, "Not first time.", Toast.LENGTH_LONG).show();
         }
 
-        // get currencies from API
-        String[] currencies = getCurrencies();
-
-        // load spinners
-        Spinner fromSpinner = (Spinner) findViewById(R.id.startSpinner);
-        Spinner toSpinner = (Spinner) findViewById(R.id.destinationSpinner);
-
-        // TODO Properly implement the Spinners
-        fromSpinner.setOnItemSelectedListener(this);
-        toSpinner.setOnItemSelectedListener(this);
-
-        //Creating the ArrayAdapter instance having the bank name list
-        ArrayAdapter aa = new ArrayAdapter(this, android.R.layout.simple_spinner_item, currencies);
-        aa.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-
-        //Setting the ArrayAdapter data on the Spinner
-        fromSpinner.setAdapter(aa);
-        toSpinner.setAdapter(aa);
     }
+}
+/*
+private class GetCurrencies extends AsyncTask<Void, Void, Void> {
 
-    //Performing action onItemSelected and onNothing selected
     @Override
-    public void onItemSelected(AdapterView<?> arg0, View arg1, int position, long id) {
-        Toast.makeText(getApplicationContext(), currencies[position], Toast.LENGTH_LONG).show();
+    protected void onPreExecute() {
+        super.onPreExecute();
+        // show Progress bar and Toast
+        ProgressBar pBar = findViewById(R.id.progressBar);
+        pBar.setVisibility(View.VISIBLE);
+        Toast.makeText(this, "Syncing...", Toast.LENGTH_LONG).show();
     }
 
     @Override
-    public void onNothingSelected(AdapterView<?> arg0) {
+    protected String doInBackground(Void... arg0) {
+        HttpHandler sh = new HttpHandler();
 
+        // Making a request to url and getting response
+        String jsonStr = sh.makeServiceCall("https://openexchangerates.org/api/latest.json?app_id=db98850be67e4d3d9a3ac0cf26ea2e40");
     }
 
-
+    @Override
+    protected void onPostExecute(Void result) {
+        super.onPostExecute(result);
+        // Replace JSON in preferences with the newer one
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putString("currencies", jsonStr);
+        editor.apply();
+    }
 }
-
-}
+*/
