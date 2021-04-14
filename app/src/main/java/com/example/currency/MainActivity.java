@@ -2,29 +2,86 @@ package com.example.currency;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.content.SharedPreferences;
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
-import android.view.View;
-import android.widget.ProgressBar;
-import android.widget.Toast;
 
-import android.content.Context;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
+import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.EditText;
+import android.widget.Spinner;
+import android.widget.TextView;
+
+
+import org.json.JSONObject;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Iterator;
 
 
 public class MainActivity extends AppCompatActivity {
-    public boolean checkInternet() {
-        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo netInfo = cm.getActiveNetworkInfo();
+    private HashMap<String, Double> currencies;
 
-        if (!(netInfo != null && netInfo.isConnectedOrConnecting())) {
-            return false;
-        } else {
-            return true;
+    public HashMap<String, Double> getCurrencies() {
+        return this.currencies;
+    }
+
+    public void setCurrencies(HashMap<String, Double> value) {
+        this.currencies = value;
+    }
+
+    public Double convertCurrencies(String originCurrency, String goalCurrency, float value) {
+        Double dollarValue = value * getCurrencies().get(originCurrency);
+        Double destinationValue = dollarValue / getCurrencies().get(goalCurrency);
+        return destinationValue;
+
+    }
+
+    public void onclickConvert(View view) {
+        Spinner spinner = (Spinner) findViewById(R.id.startSpinner);
+        Spinner spinner2 = (Spinner) findViewById(R.id.destinationSpinner);
+        EditText amount = (EditText) findViewById(R.id.amountInput);
+        TextView textView = (TextView) findViewById(R.id.titleText);
+
+        textView.setText(convertCurrencies(spinner.getSelectedItem().toString(), spinner2.getSelectedItem().toString(), Float.parseFloat(amount.getText().toString())).toString());
+
+    }
+    public void onclickSwap(View view){
+        Spinner spinner = (Spinner) findViewById(R.id.startSpinner);
+        Spinner spinner2 = (Spinner) findViewById(R.id.destinationSpinner);
+
+        int spinnerPositionCache = spinner.getSelectedItemPosition();
+        spinner.setSelection(spinner2.getSelectedItemPosition());
+        spinner2.setSelection(spinnerPositionCache);
+    }
+
+    public HashMap<String, Double> loadCurrencies() {
+        String json = null;
+        try {
+            InputStream is = this.getAssets().open("exchangeRates.json");
+            int size = is.available();
+            byte[] buffer = new byte[size];
+            is.read(buffer);
+            is.close();
+            json = new String(buffer, "UTF-8");
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            return null;
         }
+        HashMap<String, Double> currencyMap = null;
+        try {
+            JSONObject jsonObj = new JSONObject(json);
+
+            Iterator<String> iterator = jsonObj.keys();
+            while (iterator.hasNext()) {
+                String key = iterator.next();
+                currencyMap.put(key, jsonObj.getDouble(key)); // TODO: Fix bug: null object reference
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return currencyMap;
+
     }
 
     @Override
@@ -32,47 +89,20 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // check if it is first time using app
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        if (!prefs.getBoolean("firstTime", false)) {
-            //sync();
-            SharedPreferences.Editor editor = prefs.edit();
-            editor.putBoolean("firstTime", true);
-            editor.commit();
-        } else {
-            Toast.makeText(this, "Not first time.", Toast.LENGTH_LONG).show();
-        }
+        // Load currencies
+        setCurrencies(loadCurrencies());
+
+        // Define spinners
+        Spinner spinner = (Spinner) findViewById(R.id.startSpinner);
+        Spinner spinner2 = (Spinner) findViewById(R.id.destinationSpinner);
+
+        // Create adapter
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, getCurrencies().keySet().toArray(new String[0]));
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+        // Assign adapter
+        spinner.setAdapter(adapter);
+        spinner2.setAdapter(adapter);
 
     }
 }
-/*
-private class GetCurrencies extends AsyncTask<Void, Void, Void> {
-
-    @Override
-    protected void onPreExecute() {
-        super.onPreExecute();
-        // show Progress bar and Toast
-        ProgressBar pBar = findViewById(R.id.progressBar);
-        pBar.setVisibility(View.VISIBLE);
-        Toast.makeText(this, "Syncing...", Toast.LENGTH_LONG).show();
-    }
-
-    @Override
-    protected String doInBackground(Void... arg0) {
-        HttpHandler sh = new HttpHandler();
-
-        // Making a request to url and getting response
-        String jsonStr = sh.makeServiceCall("https://openexchangerates.org/api/latest.json?app_id=db98850be67e4d3d9a3ac0cf26ea2e40");
-    }
-
-    @Override
-    protected void onPostExecute(Void result) {
-        super.onPostExecute(result);
-        // Replace JSON in preferences with the newer one
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.putString("currencies", jsonStr);
-        editor.apply();
-    }
-}
-*/
