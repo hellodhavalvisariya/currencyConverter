@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 
@@ -44,12 +45,16 @@ public class MainActivity extends AppCompatActivity {
         return new BigDecimal(value).setScale(places, RoundingMode.HALF_UP).doubleValue();
     }
 
+    public String[] sortArrayAlpha(String[] array) {
+        Arrays.sort(array);
+        return array;
+    }
+
     public Double convertCurrencies(String originCurrency, String goalCurrency, Double value) {
         // origin -> base -> goal
         Double baseValue = value / getCurrencies().get(originCurrency);
         Double destinationValue = baseValue * getCurrencies().get(goalCurrency);
         return destinationValue;
-
     }
 
     public void onclickConvert(View view) {
@@ -78,7 +83,6 @@ public class MainActivity extends AppCompatActivity {
 
         // Clear inputField
         amount.setText("");
-
     }
 
     public void onclickSwap(View view) {
@@ -110,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
             Iterator<String> iterator = jsonObj.keys();
             while (iterator.hasNext()) {
                 String key = iterator.next();
-                currencyMap.put(key, jsonObj.getDouble(key)); // TODO: Fix bug: null object reference
+                currencyMap.put(key, jsonObj.getDouble(key));
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -132,7 +136,7 @@ public class MainActivity extends AppCompatActivity {
         Spinner spinner2 = (Spinner) findViewById(R.id.destinationSpinner);
 
         // Create adapter
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, getCurrencies().keySet().toArray(new String[0]));
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, sortArrayAlpha(getCurrencies().keySet().toArray(new String[0])));
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 
         // Assign adapter
