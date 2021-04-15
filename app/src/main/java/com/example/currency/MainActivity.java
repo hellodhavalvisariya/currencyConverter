@@ -143,6 +143,20 @@ public class MainActivity extends AppCompatActivity {
         spinner.setAdapter(adapter);
         spinner2.setAdapter(adapter);
 
+        // Select default values
+        for (int index = 0; index < spinner.getCount(); ++index) {
+            if (spinner.getItemAtPosition(index).equals("EUR")) {
+                spinner.setSelection(index);
+                break;
+            }
+        }
+        for (int index = 0; index < spinner2.getCount(); ++index) {
+            if (spinner2.getItemAtPosition(index).equals("USD")) {
+                spinner2.setSelection(index);
+                break;
+            }
+        }
+
         EditText amount = (EditText) findViewById(R.id.amountInput);
 
         amount.setOnEditorActionListener(new TextView.OnEditorActionListener() {
