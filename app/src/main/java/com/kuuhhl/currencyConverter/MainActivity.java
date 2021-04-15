@@ -2,14 +2,17 @@ package com.kuuhhl.currencyConverter;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
 
+import android.preference.PreferenceManager;
 import android.text.SpannableString;
 import android.text.style.RelativeSizeSpan;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.Spinner;
@@ -47,6 +50,13 @@ public class MainActivity extends AppCompatActivity {
     public String[] sortArrayAlpha(String[] array) {
         Arrays.sort(array);
         return array;
+    }
+
+    public void updateSharedPrefsString(String key, String value) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString(key, value);
+        editor.apply();
     }
 
     public Double convertCurrencies(String originCurrency, String goalCurrency, Double value) {
@@ -142,15 +152,20 @@ public class MainActivity extends AppCompatActivity {
         spinner.setAdapter(adapter);
         spinner2.setAdapter(adapter);
 
+        // get default values
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        String spinnerValue = prefs.getString("spinner1", "EUR");
+        String spinnerValue2 = prefs.getString("spinner2", "USD");
+
         // Select default values
         for (int index = 0; index < spinner.getCount(); ++index) {
-            if (spinner.getItemAtPosition(index).equals("EUR")) {
+            if (spinner.getItemAtPosition(index).equals(spinnerValue)) {
                 spinner.setSelection(index);
                 break;
             }
         }
         for (int index = 0; index < spinner2.getCount(); ++index) {
-            if (spinner2.getItemAtPosition(index).equals("USD")) {
+            if (spinner2.getItemAtPosition(index).equals(spinnerValue2)) {
                 spinner2.setSelection(index);
                 break;
             }
@@ -167,6 +182,32 @@ public class MainActivity extends AppCompatActivity {
                 }
                 return false;
             }
+        });
+
+        // save selection in shared preferences
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parentView, View selectedItemView, int position, long id) {
+                updateSharedPrefsString("spinner1", spinner.getSelectedItem().toString());
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parentView) {
+                return;
+            }
+
+        });
+        spinner2.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parentView, View selectedItemView, int position, long id) {
+                updateSharedPrefsString("spinner2", spinner2.getSelectedItem().toString());
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parentView) {
+                return;
+            }
+
         });
 
     }
