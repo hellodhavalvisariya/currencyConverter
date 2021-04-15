@@ -4,19 +4,29 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
 
+import android.text.SpannableString;
+import android.text.style.RelativeSizeSpan;
+import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 
 import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.Iterator;
+
+import static android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -30,9 +40,14 @@ public class MainActivity extends AppCompatActivity {
         this.currencies = value;
     }
 
-    public Double convertCurrencies(String originCurrency, String goalCurrency, float value) {
-        Double dollarValue = value * getCurrencies().get(originCurrency);
-        Double destinationValue = dollarValue / getCurrencies().get(goalCurrency);
+    public Double roundDouble(int places, Double value) {
+        return new BigDecimal(value).setScale(places, RoundingMode.HALF_UP).doubleValue();
+    }
+
+    public Double convertCurrencies(String originCurrency, String goalCurrency, Double value) {
+        // origin -> base -> goal
+        Double baseValue = value / getCurrencies().get(originCurrency);
+        Double destinationValue = baseValue * getCurrencies().get(goalCurrency);
         return destinationValue;
 
     }
@@ -43,10 +58,30 @@ public class MainActivity extends AppCompatActivity {
         EditText amount = (EditText) findViewById(R.id.amountInput);
         TextView textView = (TextView) findViewById(R.id.titleText);
 
-        textView.setText(convertCurrencies(spinner.getSelectedItem().toString(), spinner2.getSelectedItem().toString(), Float.parseFloat(amount.getText().toString())).toString());
+        // Catch bad inputs
+        if (amount.getText().toString().equals("")) {
+            textView.setText("Empty input.");
+            return;
+        } else {
+            Log.i("Info", "Input value: " + amount.getText().toString());
+        }
+        // Define text fields
+        String text1 = amount.getText() + " " + spinner.getSelectedItem().toString();
+        String text2 = ("\n≈ " + roundDouble(2, convertCurrencies(spinner.getSelectedItem().toString(), spinner2.getSelectedItem().toString(), Double.parseDouble(amount.getText().toString()))).toString() + " " + spinner2.getSelectedItem().toString());
+
+        // Apply styling
+        SpannableString spannableString = new SpannableString(text1 + text2);
+        spannableString.setSpan(new RelativeSizeSpan(0.5f), 0, text1.length(), SPAN_EXCLUSIVE_EXCLUSIVE);
+
+        // Apply text
+        textView.setText(spannableString);
+
+        // Clear inputField
+        amount.setText("");
 
     }
-    public void onclickSwap(View view){
+
+    public void onclickSwap(View view) {
         Spinner spinner = (Spinner) findViewById(R.id.startSpinner);
         Spinner spinner2 = (Spinner) findViewById(R.id.destinationSpinner);
 
@@ -68,7 +103,7 @@ public class MainActivity extends AppCompatActivity {
             ex.printStackTrace();
             return null;
         }
-        HashMap<String, Double> currencyMap = null;
+        HashMap<String, Double> currencyMap = new HashMap<String, Double>();
         try {
             JSONObject jsonObj = new JSONObject(json);
 
@@ -103,6 +138,19 @@ public class MainActivity extends AppCompatActivity {
         // Assign adapter
         spinner.setAdapter(adapter);
         spinner2.setAdapter(adapter);
+
+        EditText amount = (EditText) findViewById(R.id.amountInput);
+
+        amount.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                    onclickConvert(null);
+                    return true;
+                }
+                return false;
+            }
+        });
 
     }
 }
