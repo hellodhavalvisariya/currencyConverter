@@ -1,4 +1,4 @@
-package com.example.currency;
+package com.kuuhhl.currencyConverter;
 
 import androidx.appcompat.app.AppCompatActivity;
 
