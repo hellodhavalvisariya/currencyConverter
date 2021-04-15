@@ -21,7 +21,6 @@
 
     <EditText
         android:id="@+id/amountInput"
-        android:imeOptions="actionSearch"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
@@ -32,7 +31,11 @@
         android:ems="10"
         android:fontFamily="sans-serif-thin"
         android:hint="amount"
+        android:imeOptions="actionSearch"
         android:inputType="numberDecimal"
+        android:backgroundTint="@color/primary"
+        android:textColorLink="@color/primary"
+        android:textCursorDrawable="@color/primary"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/titleText" />
@@ -93,7 +96,7 @@
         android:fontFamily="sans-serif-light"
         android:onClick="onclickConvert"
         android:text="calculate"
-        app:backgroundTint="@android:color/holo_blue_dark"
+        app:backgroundTint="@color/primary"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/destinationSpinner" />
@@ -107,7 +110,7 @@
         android:onClick="onclickSwap"
         android:text="⇵"
         android:textSize="14sp"
-        app:backgroundTint="@android:color/holo_blue_dark"
+        app:backgroundTint="@color/primary"
         app:layout_constraintBottom_toTopOf="@+id/destinationSpinner"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/startSpinner" />
