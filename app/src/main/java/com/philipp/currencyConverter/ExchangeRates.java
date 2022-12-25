@@ -1,4 +1,4 @@
-package com.kuuhhl.currencyConverter;
+package com.philipp.currencyConverter;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -16,7 +16,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -41,7 +41,7 @@ public class ExchangeRates {
                 byte[] buffer = new byte[size];
                 is.read(buffer);
                 is.close();
-                cachedContents = new String(buffer, StandardCharsets.UTF_8);
+                cachedContents = new String(buffer, Charset.forName("UTF-8"));
             } catch (IOException ex) {
                 ex.printStackTrace();
             }

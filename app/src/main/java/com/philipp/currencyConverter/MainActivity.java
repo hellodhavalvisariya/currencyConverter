@@ -1,4 +1,4 @@
-package com.kuuhhl.currencyConverter;
+package com.philipp.currencyConverter;
 
 import static android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE;
 

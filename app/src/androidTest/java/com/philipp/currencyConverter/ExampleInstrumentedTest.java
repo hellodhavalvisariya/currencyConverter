@@ -1,4 +1,4 @@
-package com.kuuhhl.currencyConverter;
+package com.philipp.currencyConverter;
 
 import android.content.Context;
 
