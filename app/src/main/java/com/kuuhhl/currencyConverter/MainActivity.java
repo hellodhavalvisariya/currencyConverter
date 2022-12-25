@@ -1,10 +1,9 @@
 package com.kuuhhl.currencyConverter;
 
-import androidx.appcompat.app.AppCompatActivity;
+import static android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
-
 import android.preference.PreferenceManager;
 import android.text.SpannableString;
 import android.text.style.RelativeSizeSpan;
@@ -18,59 +17,33 @@ import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
 
+import androidx.appcompat.app.AppCompatActivity;
 
-import org.json.JSONObject;
-
-import java.io.IOException;
-import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-
-import static android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 
 public class MainActivity extends AppCompatActivity {
-    private HashMap<String, Double> currencies;
+    private ExchangeRates rates = null;
 
-    public HashMap<String, Double> getCurrencies() {
-        return this.currencies;
-    }
-
-    public void setCurrencies(HashMap<String, Double> value) {
-        this.currencies = value;
-    }
-
-    public Double roundDouble(int places, Double value) {
+    private Double roundDouble(int places, Double value) {
         return new BigDecimal(value).setScale(places, RoundingMode.HALF_UP).doubleValue();
     }
 
-    public String[] sortArrayAlpha(String[] array) {
-        Arrays.sort(array);
-        return array;
-    }
-
-    public void updateSharedPrefsString(String key, String value) {
+    private void updateSharedPrefsString(String key, String value) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString(key, value);
         editor.apply();
     }
 
-    public Double convertCurrencies(String originCurrency, String goalCurrency, Double value) {
-        // origin -> base -> goal
-        Double baseValue = value / getCurrencies().get(originCurrency);
-        Double destinationValue = baseValue * getCurrencies().get(goalCurrency);
-        return destinationValue;
-    }
-
     public void onclickConvert(View view) {
-        Spinner spinner = (Spinner) findViewById(R.id.startSpinner);
-        Spinner spinner2 = (Spinner) findViewById(R.id.destinationSpinner);
-        EditText amount = (EditText) findViewById(R.id.amountInput);
-        TextView textView = (TextView) findViewById(R.id.titleText);
+        Spinner spinner = findViewById(R.id.startSpinner);
+        Spinner spinner2 = findViewById(R.id.destinationSpinner);
+        EditText amount = findViewById(R.id.amountInput);
+        TextView textView = findViewById(R.id.titleText);
 
         // Catch bad inputs
         if (amount.getText().toString().equals("")) {
@@ -81,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
         }
         // Define text fields
         String text1 = amount.getText() + " " + spinner.getSelectedItem().toString();
-        String text2 = ("\n≈ " + roundDouble(2, convertCurrencies(spinner.getSelectedItem().toString(), spinner2.getSelectedItem().toString(), Double.parseDouble(amount.getText().toString()))).toString() + " " + spinner2.getSelectedItem().toString());
+        String text2 = ("\n≈ " + roundDouble(2, this.rates.convert(spinner.getSelectedItem().toString(), spinner2.getSelectedItem().toString(), Double.parseDouble(amount.getText().toString()))) + " " + spinner2.getSelectedItem().toString());
 
         // Apply styling
         SpannableString spannableString = new SpannableString(text1 + text2);
@@ -95,41 +68,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onclickSwap(View view) {
-        Spinner spinner = (Spinner) findViewById(R.id.startSpinner);
-        Spinner spinner2 = (Spinner) findViewById(R.id.destinationSpinner);
+        Spinner spinner = findViewById(R.id.startSpinner);
+        Spinner spinner2 = findViewById(R.id.destinationSpinner);
 
         int spinnerPositionCache = spinner.getSelectedItemPosition();
         spinner.setSelection(spinner2.getSelectedItemPosition());
         spinner2.setSelection(spinnerPositionCache);
-    }
-
-    public HashMap<String, Double> loadCurrencies() {
-        String json = null;
-        try {
-            InputStream is = this.getAssets().open("exchangeRates.json");
-            int size = is.available();
-            byte[] buffer = new byte[size];
-            is.read(buffer);
-            is.close();
-            json = new String(buffer, "UTF-8");
-        } catch (IOException ex) {
-            ex.printStackTrace();
-            return null;
-        }
-        HashMap<String, Double> currencyMap = new HashMap<String, Double>();
-        try {
-            JSONObject jsonObj = new JSONObject(json);
-
-            Iterator<String> iterator = jsonObj.keys();
-            while (iterator.hasNext()) {
-                String key = iterator.next();
-                currencyMap.put(key, jsonObj.getDouble(key));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return currencyMap;
-
     }
 
     @Override
@@ -137,15 +81,32 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Load currencies
-        setCurrencies(loadCurrencies());
+        // Load currencies from cache
+        this.rates = new ExchangeRates(this);
+
+        // if today is not the date from the cached rates,
+        // try to update the cache
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        String todaysDate = dateFormat.format(new Date());
+        if (!todaysDate.equals(rates.getLastUpdated())) {
+            rates.updateCache(this);
+            rates = new ExchangeRates(this);
+        }
+
+        // update last updated text on the bottom
+        TextView lastUpdated = findViewById(R.id.lastUpdated);
+        if (todaysDate.equals(rates.getLastUpdated())) {
+            lastUpdated.setText("last updated: today");
+        } else {
+            lastUpdated.setText("last updated: " + rates.getLastUpdated());
+        }
 
         // Define spinners
-        Spinner spinner = (Spinner) findViewById(R.id.startSpinner);
-        Spinner spinner2 = (Spinner) findViewById(R.id.destinationSpinner);
+        Spinner spinner = findViewById(R.id.startSpinner);
+        Spinner spinner2 = findViewById(R.id.destinationSpinner);
 
         // Create adapter
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, sortArrayAlpha(getCurrencies().keySet().toArray(new String[0])));
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, this.rates.getCurrencyKeys());
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 
         // Assign adapter
@@ -171,7 +132,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        EditText amount = (EditText) findViewById(R.id.amountInput);
+        EditText amount = findViewById(R.id.amountInput);
 
         amount.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
