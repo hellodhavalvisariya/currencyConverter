@@ -1,3 +1,5 @@
 <resources>
-    <string name="app_name">Currency Converter</string>
+    <string name="app_name">Currency Converter 162 </string>
+    <string name="last_updated_by_dhaval_visariya">last updated by Dhaval :</string>
+    <string name="last_updated">last</string>
 </resources>
